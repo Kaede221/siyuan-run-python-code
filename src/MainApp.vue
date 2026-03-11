@@ -1,103 +1,53 @@
 <template>
   <div class="main-div" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
-    <MonacoEditor ref="code_editor" class="code-editor" @keydown.ctrl.enter="executeCode" @format-code="formatCode"
-      @update:value="onEditorContentChange" />
-    <div class="middle-toolbar flex bg-gray-200">
-      <el-tooltip content="Opt+Cmd+L to Format Code" :show-after="500">
-        <button
-          class="bg-green-500 hover:bg-green-400 text-gray-800 font-bold py-0.75 px-4 inline-flex items-center cursor-pointer"
-          @click="formatCode">
-          <el-icon color="white">
-            <Brush />
-          </el-icon>
-        </button>
-      </el-tooltip>
+    <MonacoEditor ref="codeEditor" class="code-editor" @keydown.ctrl.enter="handleExecuteCode"
+      @format-code="handleFormatCode" @update:value="onEditorContentChange" />
 
-      <el-tooltip content="Ctrl+Enter to Run" :show-after="500">
-        <button
-          class="bg-blue-500 hover:bg-blue-400 text-gray-800 font-bold py-0.75 px-4 inline-flex items-center cursor-pointer"
-          @click="executeCode">
-          <el-icon color="white">
-            <CaretRight />
-          </el-icon>
-          <span class="font-medium text-white">Run</span>
-        </button>
-      </el-tooltip>
+    <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover"
+      @format="handleFormatCode" @run="handleExecuteCode" @open-settings="configDialogVisible = true" />
 
-      <pre v-if="finishedTime.length > 0" class="run-time-text text-green-600">
-Save and run finished at: {{ finishedTime }}. Cost: {{ costSeconds }}s</pre>
-
-      <el-tooltip content="Global settings" :show-after="500">
-        <button
-          class="hover:bg-gray-300 text-gray-800 font-bold py-0.75 px-2 inline-flex items-center cursor-pointer ml-auto"
-          v-show="isHover" @click="configDialogVisible = true">
-          <el-icon color="black">
-            <Setting />
-          </el-icon>
-        </button>
-      </el-tooltip>
-    </div>
-
-    <!-- 执行结果展示 -->
-    <div class="output-section" ref="output_section">
-      <pre class="text-gray-900" style="white-space: pre-wrap">{{ result }}</pre>
-      <div ref="matplotlibImageDiv" id="target" class="p-2"></div>
-    </div>
+    <OutputSection ref="outputSection" :result="result" />
   </div>
 
-  <el-dialog title="Global Settings" v-model="configDialogVisible" width="50%">
-    <el-form :model="config" label-position="top" class="px-4">
-      <el-form-item label="主题颜色">
-        <el-select v-model="config.theme" placeholder="Theme" style="width: 200px">
-          <el-option label="vs-light" value="vs-light" />
-          <el-option label="vs-dark" value="vs-dark" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <template v-slot:label>
-          <span>预安装 pip 包，格式参考 requirements.txt 写法。仅支持纯 python 语言的 pip
-            包，具体参考：</span>
-          <a href="https://pyodide.org/en/stable/usage/packages-in-pyodide.html" target="_blank"
-            class="text-blue-600 dark:text-blue-500 hover:underline">https://pyodide.org/en/stable/usage/packages-in-pyodide.html</a>
-        </template>
-        <el-input v-model="config.pipPackages" placeholder="e.g. numpy==2.0.2" :rows="8" type="textarea" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="saveConfig">保存</el-button>
-      </el-form-item>
-    </el-form>
-  </el-dialog>
+  <SettingsDialog v-model="configDialogVisible" :config="config" @save="handleSaveConfig" />
 </template>
 
 <script lang="ts">
-import { loadPyodide } from 'pyodide'
 import MonacoEditor from '@/components/MonacoEditor.vue'
-import { CaretRight, Setting, Brush } from '@element-plus/icons-vue'
-import {
-  GetConfig,
-  GetWidgetData,
-  SaveConfig,
-  SaveWidgetData,
-  siyuanClient,
-} from '@/utils/siyuan_client.js'
-import { ElLoading, ElMessage } from 'element-plus'
+import ToolBar from '@/components/ToolBar.vue'
+import OutputSection from '@/components/OutputSection.vue'
+import SettingsDialog from '@/components/SettingsDialog.vue'
+import { GetConfig, SaveConfig, siyuanClient } from '@/utils/siyuan_client'
+import { ElLoading } from 'element-plus'
 import { PyodideWrapper } from './utils/pyodide_wrapper'
+import { usePythonExecution } from './composables/usePythonExecution'
+import { useDataPersistence } from './composables/useDataPersistence'
 
-// Start of Selection
 export default {
   name: 'MainApp',
-  components: { Setting, CaretRight, MonacoEditor, Brush }, // 移除未使用的 RefreshRight 组件
+  components: { MonacoEditor, ToolBar, OutputSection, SettingsDialog },
+  setup() {
+    const pyodideWrapper = new PyodideWrapper()
+    const { result, finishedTime, costSeconds, canvasImages, executeCode, formatCode } = usePythonExecution(pyodideWrapper)
+    const { saveData, loadData } = useDataPersistence()
+
+    return {
+      pyodideWrapper,
+      result,
+      finishedTime,
+      costSeconds,
+      canvasImages,
+      executeCode,
+      formatCode,
+      saveData,
+      loadData,
+    }
+  },
   data() {
     return {
-      result: '',
       loading: false,
-      pyodideWrapper: null as PyodideWrapper | null,
-      canvasImages: {} as Record<string, string>,
-      finishedTime: '',
-      costSeconds: 0,
-      startExecuteTime: 0,
       isHover: false,
-      hoverTimeout: 0,
+      hoverTimeout: 0 as any,
       configDialogVisible: false,
       config: {
         theme: 'vs-light',
@@ -117,13 +67,14 @@ export default {
       background: 'rgba(0, 0, 0, 0.7)',
     })
 
-    await Promise.all([this.waitLoadingPyodide(), this.waitKernelBoot()])
+    await Promise.all([this.initializePyodide(), this.waitKernelBoot()])
     const cfg = await GetConfig()
-    if (cfg) {
-      this.config = cfg
+    if (cfg && cfg.theme && cfg.pipPackages !== undefined) {
+      this.config = { ...cfg }
     }
-    this.$refs.code_editor.setEditorTheme(this.config.theme)
-    this.$refs.code_editor.setPyodide(this.pyodideWrapper?.pyodide)
+    const codeEditor = this.$refs.codeEditor as any
+    codeEditor.setEditorTheme(this.config.theme)
+    codeEditor.setPyodide(this.pyodideWrapper?.pyodide)
     await this.pyodideWrapper?.installPackages(this.config.pipPackages)
 
     loadingInstance.close()
@@ -131,29 +82,21 @@ export default {
   },
 
   methods: {
-    async saveConfig() {
-      if (!(await this.pyodideWrapper?.validatePipPackages(this.config.pipPackages))) {
-        return
-      }
-
-      this.$refs.code_editor.setEditorTheme(this.config.theme)
-
-      await SaveConfig(this.config)
-      this.configDialogVisible = false
-    },
-
     handleMouseEnter() {
-      // 清除可能的延迟关闭定时器
       if (this.hoverTimeout) {
         clearTimeout(this.hoverTimeout)
       }
       this.isHover = true
     },
+
     handleMouseLeave() {
-      // 添加一点延迟避免快速移出时闪烁
       this.hoverTimeout = setTimeout(() => {
         this.isHover = false
       }, 100)
+    },
+
+    async initializePyodide() {
+      await this.pyodideWrapper.intialize()
     },
 
     async waitKernelBoot() {
@@ -169,188 +112,83 @@ export default {
       await this.setupEditor()
     },
 
-    async waitLoadingPyodide() {
-      this.pyodideWrapper = new PyodideWrapper()
-      await this.pyodideWrapper.intialize()
-    },
-
     async setupEditor() {
-      const savedData = await GetWidgetData()
+      const savedData = await this.loadData()
       this.finishedTime = savedData.finishedTime || ''
       this.costSeconds = savedData.costSeconds || 0
       this.result = savedData.result || ''
 
-      this.$refs.matplotlibImageDiv.innerHTML = savedData.matplotlibDiv || ''
+      const outputSection = this.$refs.outputSection as any
+      outputSection.setMatplotlibContent(savedData.matplotlibDiv || '')
       this.canvasImages = savedData.canvasImages || {}
-      // console.log('canvasImages:', this.canvasImages)
+      outputSection.restoreCanvasImages(this.canvasImages)
 
-      for (const canvasId in this.canvasImages) {
-        const canvas = document.getElementById(canvasId)
-        // console.log('canvas:', canvas)
-        if (canvas) {
-          const img = new Image()
-          img.src = this.canvasImages[canvasId]
-          img.onload = () => {
-            const ctx = canvas.getContext('2d')
-            canvas.width = img.naturalWidth
-            canvas.height = img.naturalHeight
-            ctx.drawImage(img, 0, 0)
-          }
-        }
-      }
-      // 设置编辑器内容，它需要在最后设置，因为设置内容会触发编辑器内容变更事件，导致上面的数据被覆盖
-      this.$refs.code_editor.setEditorContent(savedData.code || '')
+      const codeEditor = this.$refs.codeEditor as any
+      codeEditor.setEditorContent(savedData.code || '')
     },
 
-    async atExecuteFinish() {
-      this.finishedTime = new Date().toLocaleString()
-      this.costSeconds = ((new Date().getTime() - this.startExecuteTime) / 1000).toFixed(2)
+    async handleSaveConfig(newConfig: any) {
+      if (!(await this.pyodideWrapper?.validatePipPackages(newConfig.pipPackages))) {
+        return
+      }
 
-      // const matplotlibDiv = document.querySelector('div[id^="matplotlib_"]')
-      // if (matplotlibDiv) {
-      //   this.$refs.matplotlibImageDiv.innerHTML = matplotlibDiv.innerHTML
-      //   matplotlibDiv.remove()
-      // }
-
-      setTimeout(async () => {
-        // console.log('start save data')
-        this.canvasImages = {}
-        const canvasList = document.querySelectorAll('canvas[id^="matplotlib_"]')
-        // 怎么确认 canvas 确实已经绘制完成了呢？
-
-        // console.log('canvasList:', canvasList)
-        for (const canvas of canvasList) {
-          const img = canvas.toDataURL('image/png')
-          const ctx = canvas.getContext('2d')
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
-          const isEmpty = Array.from(imageData).every((v) => v === 0)
-          // console.log(isEmpty ? 'Canvas 为空' : 'Canvas 有内容')
-          if (!isEmpty) {
-            this.canvasImages[canvas.id] = img
-          }
-        }
-
-        await SaveWidgetData({
-          code: this.$refs.code_editor.getEditorContent(),
-          finishedTime: this.finishedTime,
-          costSeconds: this.costSeconds,
-          result: this.result,
-          matplotlibDiv: this.$refs.matplotlibImageDiv?.innerHTML || '',
-          canvasImages: this.canvasImages,
-        })
-      }, 1000)
+      this.config = { ...newConfig }
+      const codeEditor = this.$refs.codeEditor as any
+      codeEditor.setEditorTheme(this.config.theme)
+      await SaveConfig(this.config)
+      this.configDialogVisible = false
     },
 
     async onEditorContentChange() {
-      await SaveWidgetData({
-        code: this.$refs.code_editor.getEditorContent(),
+      const codeEditor = this.$refs.codeEditor as any
+      const outputSection = this.$refs.outputSection as any
+      await this.saveData({
+        code: codeEditor.getEditorContent(),
         finishedTime: this.finishedTime,
         costSeconds: this.costSeconds,
         result: this.result,
-        matplotlibDiv: this.$refs.matplotlibImageDiv?.innerHTML || '',
+        matplotlibDiv: outputSection.getMatplotlibDiv()?.innerHTML || '',
         canvasImages: this.canvasImages,
       })
     },
 
-    async formatCode() {
-      const value = this.$refs.code_editor.getEditorContent()
-      if (!value) {
-        ElMessage.error('No code to format')
-        return
-      }
+    async handleFormatCode() {
+      const codeEditor = this.$refs.codeEditor as any
+      const value = codeEditor.getEditorContent()
+      const cursorPosition = codeEditor.getPosition()
 
-      // 记录当前光标位置
-      const cursorPosition = this.$refs.code_editor.getPosition()
-
-      try {
-        const output = []
-        this.pyodideWrapper?.pyodide.setStdout({ batched: (text) => output.push(text) })
-
-        // 执行代码
-        await this.pyodideWrapper?.pyodide.runPythonAsync(`
-          import black
-          import json
-          code = ${JSON.stringify(value)}
-          try:
-            formated = black.format_file_contents(code, fast=False, mode=black.Mode(line_length=120))
-          except black.report.NothingChanged:
-            print(json.dumps({"ok": True, "error": "", "formated": ""}))
-          except Exception as e:
-            print(json.dumps({"ok": False, "error": str(e), "formated": ""}))
-          else:
-            print(json.dumps({"ok": True, "error": "", "formated": formated}))
-      `)
-        const formatResult = JSON.parse(output[0])
-
-        if (formatResult.ok) {
-          if (formatResult.formated) {
-            this.$refs.code_editor.setEditorContent(formatResult.formated)
-            // 恢复光标位置
-            this.$refs.code_editor.setPosition(cursorPosition)
-          }
-          ElMessage.success({
-            message: 'Format code successfully',
-            duration: 500,
-          })
-        } else {
-          ElMessage.error(formatResult.error)
-        }
-      } catch (error) {
-        ElMessage.error(error.toString())
+      const formattedCode = await this.formatCode(value)
+      if (formattedCode) {
+        codeEditor.setEditorContent(formattedCode)
+        codeEditor.setPosition(cursorPosition)
       }
     },
 
-    async executeCode() {
-      this.startExecuteTime = new Date().getTime()
-      let value = this.$refs.code_editor.getEditorContent()
-      if (!value) {
-        this.result = 'Execution successful (no output)'
-        this.atExecuteFinish()
+    async handleExecuteCode() {
+      const codeEditor = this.$refs.codeEditor as any
+      const outputSection = this.$refs.outputSection as any
+      const code = codeEditor.getEditorContent()
+      const matplotlibDiv = outputSection.getMatplotlibDiv()
 
-        return
-      }
-
-      this.result = ''
-      this.$refs.matplotlibImageDiv.innerHTML = ''
-      const canvasList = document.querySelectorAll('canvas[id^="matplotlib_"]')
-      for (const canvas of canvasList) {
-        const ctx = canvas.getContext('2d')
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        canvas.remove()
-      }
+      outputSection.clearMatplotlib()
       this.canvasImages = {}
 
-      try {
-        // 重定向输出
-        const output = []
-        this.pyodideWrapper?.pyodide.setStdout({ batched: (text) => output.push(text) })
+      await this.executeCode(code, matplotlibDiv)
 
-        document.pyodideMplTarget = document.getElementById('target')
-
-        // 执行代码
-        if (value.includes('matplotlib')) {
-          value += `
-import matplotlib.pyplot as plt
-plt.close()
-          `
-        }
-
-        await this.pyodideWrapper?.pyodide.runPythonAsync(value)
-
-        // 保存结果
-        this.result = output.join('\n') || 'Execution successful (no output)'
-        // console.log('result:', this.result)
-      } catch (error) {
-        this.result = error.toString()
-      } finally {
-        this.atExecuteFinish()
-      }
+      await this.saveData({
+        code: codeEditor.getEditorContent(),
+        finishedTime: this.finishedTime,
+        costSeconds: this.costSeconds,
+        result: this.result,
+        matplotlibDiv: matplotlibDiv?.innerHTML || '',
+        canvasImages: this.canvasImages,
+      })
     },
   },
 }
 </script>
 
-<style>
+<style scoped>
 .main-div {
   width: 100%;
   min-height: 100%;
@@ -363,26 +201,5 @@ plt.close()
   width: 95vw;
   height: 40vh;
   margin: auto;
-}
-
-.middle-toolbar {
-  height: 22px;
-  line-height: 22px;
-  width: 95vw;
-  margin: auto;
-}
-
-.output-section {
-  width: 95vw;
-  min-height: 10vh;
-  padding: 12px;
-  margin: auto;
-  font-size: 12px;
-  background: #f9f8f7;
-}
-
-.run-time-text {
-  font-size: 11px;
-  margin-left: 12px;
 }
 </style>
