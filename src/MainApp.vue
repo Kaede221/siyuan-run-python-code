@@ -127,7 +127,7 @@ export default {
       this.finishedTime = savedData.finishedTime || ''
       this.costSeconds = savedData.costSeconds || 0
       this.result = savedData.result || ''
-      this.editorHeight = savedData.editorHeight || 400
+      this.editorHeight = savedData.editorHeight || Math.floor(window.innerHeight * 0.5)
 
       const outputSection = this.$refs.outputSection as any
       outputSection.setMatplotlibContent(savedData.matplotlibDiv || '')
@@ -252,10 +252,7 @@ export default {
       const deltaY = e.clientY - this.startY
       const newHeight = this.startHeight + deltaY
 
-      const minHeight = 200
-      const maxHeight = window.innerHeight - 300
-
-      this.editorHeight = Math.max(minHeight, Math.min(newHeight, maxHeight))
+      this.editorHeight = Math.max(50, Math.min(newHeight, window.innerHeight - 50))
     },
 
     async stopResize() {

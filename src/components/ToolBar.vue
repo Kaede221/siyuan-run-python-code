@@ -24,7 +24,7 @@
     <pre v-if="finishedTime" class="run-time-text text-green-600">
 Save and run finished at: {{ finishedTime }}. Cost: {{ costSeconds }}s</pre>
 
-    <el-tooltip content="Global settings" :show-after="500">
+    <el-tooltip content="全局设置" :show-after="500">
       <button
         class="hover:bg-gray-300 text-gray-800 font-bold py-0.75 px-2 inline-flex items-center cursor-pointer ml-auto"
         v-show="showSettings"

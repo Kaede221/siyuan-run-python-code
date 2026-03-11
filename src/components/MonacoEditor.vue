@@ -154,6 +154,10 @@ export default {
       wordBasedSuggestions: 'currentDocument',
       scrollbar: {
         alwaysConsumeMouseWheel: false,
+        vertical: 'auto',
+        horizontal: 'auto',
+        verticalScrollbarSize: 10,
+        horizontalScrollbarSize: 10,
       },
       ...this.options,
     })

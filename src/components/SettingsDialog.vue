@@ -1,5 +1,5 @@
 <template>
-  <el-dialog title="Global Settings" v-model="visible" width="50%" @close="$emit('update:modelValue', false)">
+  <el-dialog title="全局设置" v-model="visible" width="50%" @close="$emit('update:modelValue', false)">
     <el-form :model="localConfig" label-position="top" class="px-4">
       <el-form-item label="主题颜色">
         <el-select v-model="localConfig.theme" placeholder="Theme" style="width: 200px">
