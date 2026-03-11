@@ -191,10 +191,12 @@ export default {
 <style scoped>
 .main-div {
   width: 100%;
-  min-height: 100%;
+  min-height: 100vh;
   margin: auto;
   padding: 8px;
   background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
 }
 
 .code-editor {
