@@ -18,19 +18,22 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="handleSave">保存</el-button>
+        <el-button type="danger" @click="handleClearData">清除所有数据</el-button>
       </el-form-item>
     </el-form>
   </el-dialog>
 </template>
 
 <script lang="ts">
+import { ElMessageBox, ElMessage } from 'element-plus'
+
 export default {
   name: 'SettingsDialog',
   props: {
     modelValue: Boolean,
     config: Object,
   },
-  emits: ['update:modelValue', 'save'],
+  emits: ['update:modelValue', 'save', 'clearData'],
   data() {
     return {
       localConfig: { ...this.config },
@@ -57,6 +60,22 @@ export default {
   methods: {
     handleSave() {
       this.$emit('save', this.localConfig)
+    },
+    async handleClearData() {
+      try {
+        await ElMessageBox.confirm(
+          '此操作将清除当前挂件的所有数据（代码、执行结果、图表等）以及全局配置（主题、pip包）。是否继续？',
+          '警告',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        )
+        this.$emit('clearData')
+      } catch {
+        // 用户取消操作
+      }
     },
   },
 }

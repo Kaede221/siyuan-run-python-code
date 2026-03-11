@@ -68,3 +68,30 @@ export async function GetConfig() {
     return null
   }
 }
+
+export async function ClearWidgetData() {
+  const rsp = await siyuanClient.setBlockAttrs({
+    id: currentWidgetID,
+    attrs: {
+      data: JSON.stringify({}),
+    },
+  })
+
+  if (rsp.code !== 0) {
+    throw new Error(rsp.message)
+  }
+}
+
+export async function ClearConfig() {
+  const defaultConfig = {
+    theme: 'vs-light',
+    pipPackages: '',
+  }
+  const rsp = await siyuanClient.putFile({
+    path: '/data/widgets/run_python_code_config.json',
+    file: JSON.stringify(defaultConfig),
+  })
+  if (rsp.code !== 0) {
+    throw new Error(rsp.message)
+  }
+}

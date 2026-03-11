@@ -15,7 +15,7 @@
     </div>
   </div>
 
-  <SettingsDialog v-model="configDialogVisible" :config="config" @save="handleSaveConfig" />
+  <SettingsDialog v-model="configDialogVisible" :config="config" @save="handleSaveConfig" @clear-data="handleClearData" />
 </template>
 
 <script lang="ts">
@@ -23,7 +23,7 @@ import MonacoEditor from '@/components/MonacoEditor.vue'
 import ToolBar from '@/components/ToolBar.vue'
 import OutputSection from '@/components/OutputSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
-import { GetConfig, SaveConfig, siyuanClient } from '@/utils/siyuan_client'
+import { GetConfig, SaveConfig, siyuanClient, ClearWidgetData, ClearConfig } from '@/utils/siyuan_client'
 import { ElLoading } from 'element-plus'
 import { PyodideWrapper } from './utils/pyodide_wrapper'
 import { usePythonExecution } from './composables/usePythonExecution'
@@ -148,6 +148,44 @@ export default {
       codeEditor.setEditorTheme(this.config.theme)
       await SaveConfig(this.config)
       this.configDialogVisible = false
+    },
+
+    async handleClearData() {
+      try {
+        // 清除挂件数据
+        await ClearWidgetData()
+        
+        // 清除全局配置
+        await ClearConfig()
+        
+        // 重置本地状态
+        this.config = {
+          theme: 'vs-light',
+          pipPackages: '',
+        }
+        this.finishedTime = ''
+        this.costSeconds = 0
+        this.result = ''
+        this.editorHeight = 400
+        this.canvasImages = {}
+        
+        // 清空编辑器和输出
+        const codeEditor = this.$refs.codeEditor as any
+        codeEditor.setEditorContent('')
+        codeEditor.setEditorTheme(this.config.theme)
+        
+        const outputSection = this.$refs.outputSection as any
+        outputSection.clearMatplotlib()
+        
+        this.configDialogVisible = false
+        
+        // 显示成功消息
+        const { ElMessage } = await import('element-plus')
+        ElMessage.success('所有数据已清除')
+      } catch (error) {
+        const { ElMessage } = await import('element-plus')
+        ElMessage.error('清除数据失败：' + error)
+      }
     },
 
     async onEditorContentChange() {
