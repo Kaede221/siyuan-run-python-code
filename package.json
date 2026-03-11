@@ -12,6 +12,7 @@
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
   },
+  "packageManager": "pnpm@9.0.0",
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "@siyuan-community/siyuan-sdk": "^0.3.13",
