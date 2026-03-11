@@ -1,16 +1,16 @@
 {
-  "name": "run-python-code",
-  "author": "ay27",
-  "url": "https://github.com/ay27/run_python_code",
+  "name": "run-python-code-better",
+  "author": "Kaede221",
+  "url": "https://github.com/Kaede221/siyuan-run-python-code/blob/main/LICENSE",
   "version": "1.1.0",
   "minAppVersion": "2.8.8",
   "displayName": {
-    "default": "Run Python Code",
-    "zh_CN": "Python 代码运行挂件"
+    "default": "Run Python Code Better",
+    "zh_CN": "Python 代码运行挂件增强版"
   },
   "description": {
-    "default": "A widget to run python code",
-    "zh_CN": "这是一个运行Python代码的挂件"
+    "default": "An enhanced widget to run python code in SiYuan",
+    "zh_CN": "在思源笔记中运行 Python 代码的增强版挂件"
   },
   "readme": {
     "default": "README.md"
@@ -22,6 +22,8 @@
   },
   "keywords": [
     "code",
-    "代码"
+    "python",
+    "代码",
+    "编程"
   ]
 }
