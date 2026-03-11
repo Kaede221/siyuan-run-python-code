@@ -1,5 +1,5 @@
 <template>
-  <div class="main-div" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+  <div class="main-div" :class="{ 'dark-mode': isDarkMode }" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
     <div class="editor-container" :style="{ height: editorHeight + 'px' }">
       <MonacoEditor ref="codeEditor" class="code-editor" @keydown.ctrl.enter="handleExecuteCode"
         @format-code="handleFormatCode" @update:value="onEditorContentChange" />
@@ -7,11 +7,11 @@
 
     <div class="resizer" @mousedown="startResize" :class="{ 'resizing': isResizing }"></div>
 
-    <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover"
+    <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover" :is-dark-mode="isDarkMode"
       @format="handleFormatCode" @run="handleExecuteCode" @open-settings="configDialogVisible = true" />
 
     <div class="output-container">
-      <OutputSection ref="outputSection" :result="result" />
+      <OutputSection ref="outputSection" :result="result" :is-dark-mode="isDarkMode" />
     </div>
   </div>
 
@@ -64,6 +64,12 @@ export default {
       startY: 0,
       startHeight: 0,
     }
+  },
+
+  computed: {
+    isDarkMode() {
+      return this.config.theme === 'vs-dark'
+    },
   },
 
   async mounted() {
@@ -287,6 +293,11 @@ export default {
   background: #f8f9fa;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.3s ease;
+}
+
+.main-div.dark-mode {
+  background: #1e1e1e;
 }
 
 .editor-container {
@@ -310,6 +321,10 @@ export default {
   margin: 4px 0;
 }
 
+.dark-mode .resizer {
+  background: #3e3e3e;
+}
+
 .resizer:hover,
 .resizer.resizing {
   background: #2196f3;
@@ -325,6 +340,10 @@ export default {
   height: 4px;
   background: #999;
   border-radius: 2px;
+}
+
+.dark-mode .resizer::before {
+  background: #666;
 }
 
 .resizer:hover::before,

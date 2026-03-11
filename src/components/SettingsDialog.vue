@@ -31,27 +31,30 @@ export default {
   name: 'SettingsDialog',
   props: {
     modelValue: Boolean,
-    config: Object,
+    config: {
+      type: Object as () => { theme: string; pipPackages: string },
+      required: true,
+    },
   },
   emits: ['update:modelValue', 'save', 'clearData'],
   data() {
     return {
-      localConfig: { ...this.config },
+      localConfig: { ...this.config } as { theme: string; pipPackages: string },
     }
   },
   computed: {
     visible: {
-      get() {
+      get(): boolean {
         return this.modelValue
       },
-      set(value) {
+      set(value: boolean) {
         this.$emit('update:modelValue', value)
       },
     },
   },
   watch: {
     config: {
-      handler(newConfig) {
+      handler(newConfig: { theme: string; pipPackages: string }) {
         this.localConfig = { ...newConfig }
       },
       deep: true,

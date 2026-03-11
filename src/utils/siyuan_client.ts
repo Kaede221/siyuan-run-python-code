@@ -6,7 +6,7 @@ export const siyuanClient = new Client({
    * (可选) 思源内核服务 token
    * @default: <空>
    */
-  token: "9gemfdihyg6yputo", // , 默认为空
+  // token: "9gemfdihyg6yputo", // , 默认为空
 
   /**
    * (可选) Axios 其他请求配置
@@ -54,7 +54,7 @@ export async function SaveConfig(config: any) {
   }
 }
 
-export async function GetConfig() {
+export async function GetConfig(): Promise<{ theme: string; pipPackages: string } | null> {
   try {
     const rsp = await siyuanClient.getFile(
       {
@@ -62,7 +62,7 @@ export async function GetConfig() {
       },
       'json',
     )
-    return rsp
+    return rsp as { theme: string; pipPackages: string }
   } catch (error) {
     console.error(error)
     return null

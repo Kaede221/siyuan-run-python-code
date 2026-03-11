@@ -1,6 +1,6 @@
 <template>
-  <div class="output-section" ref="outputSection">
-    <pre class="text-gray-900" style="white-space: pre-wrap">{{ result }}</pre>
+  <div class="output-section" :class="{ 'dark-mode': isDarkMode }" ref="outputSection">
+    <pre :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'" style="white-space: pre-wrap">{{ result }}</pre>
     <div ref="matplotlibImageDiv" id="target" class="p-2"></div>
   </div>
 </template>
@@ -10,6 +10,7 @@ export default {
   name: 'OutputSection',
   props: {
     result: String,
+    isDarkMode: Boolean,
   },
   expose: ['getMatplotlibDiv', 'setMatplotlibContent', 'clearMatplotlib', 'restoreCanvasImages'],
   methods: {
@@ -58,5 +59,10 @@ export default {
   margin: auto;
   font-size: 12px;
   background: #f9f8f7;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.output-section.dark-mode {
+  background: #252526;
 }
 </style>

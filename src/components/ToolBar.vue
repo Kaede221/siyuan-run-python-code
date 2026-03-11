@@ -1,5 +1,5 @@
 <template>
-  <div class="middle-toolbar flex bg-gray-200">
+  <div class="middle-toolbar flex" :class="isDarkMode ? 'bg-gray-700' : 'bg-gray-200'">
     <el-tooltip content="Opt+Cmd+L to Format Code" :show-after="500">
       <button
         class="bg-green-500 hover:bg-green-400 text-gray-800 font-bold py-0.75 px-4 inline-flex items-center cursor-pointer"
@@ -21,15 +21,16 @@
       </button>
     </el-tooltip>
 
-    <pre v-if="finishedTime" class="run-time-text text-green-600">
+    <pre v-if="finishedTime" class="run-time-text" :class="isDarkMode ? 'text-green-400' : 'text-green-600'">
 Save and run finished at: {{ finishedTime }}. Cost: {{ costSeconds }}s</pre>
 
     <el-tooltip content="全局设置" :show-after="500">
       <button
-        class="hover:bg-gray-300 text-gray-800 font-bold py-0.75 px-2 inline-flex items-center cursor-pointer ml-auto"
+        class="font-bold py-0.75 px-2 inline-flex items-center cursor-pointer ml-auto"
+        :class="isDarkMode ? 'hover:bg-gray-600 text-gray-200' : 'hover:bg-gray-300 text-gray-800'"
         v-show="showSettings"
         @click="$emit('open-settings')">
-        <el-icon color="black">
+        <el-icon :color="isDarkMode ? 'white' : 'black'">
           <Setting />
         </el-icon>
       </button>
@@ -47,6 +48,7 @@ export default {
     finishedTime: String,
     costSeconds: Number,
     showSettings: Boolean,
+    isDarkMode: Boolean,
   },
   emits: ['format', 'run', 'open-settings'],
 }
