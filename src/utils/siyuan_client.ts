@@ -6,7 +6,7 @@ export const siyuanClient = new Client({
    * (可选) 思源内核服务 token
    * @default: <空>
    */
-  // token: "a4namxlnbam7b33m", // , 默认为空
+  token: "9gemfdihyg6yputo", // , 默认为空
 
   /**
    * (可选) Axios 其他请求配置

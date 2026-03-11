@@ -6,9 +6,9 @@ export class PyodideWrapper {
 
   // 备用 CDN 列表，按优先级排序
   private static readonly CDN_URLS = [
-    'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/',
-    'https://fastly.jsdelivr.net/pyodide/v0.27.2/full/',  // jsdelivr 的 Fastly CDN
-    'https://gcore.jsdelivr.net/pyodide/v0.27.2/full/',   // jsdelivr 的 Gcore CDN
+    'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/',
+    'https://fastly.jsdelivr.net/pyodide/v0.27.7/full/',  // jsdelivr 的 Fastly CDN
+    'https://gcore.jsdelivr.net/pyodide/v0.27.7/full/',   // jsdelivr 的 Gcore CDN
   ]
 
   private async tryLoadPyodide(indexURL: string): Promise<any> {
