@@ -83,8 +83,15 @@ plt.close()
       const output: string[] = []
       pyodideWrapper?.pyodide.setStdout({ batched: (text: string) => output.push(text) })
 
+      // 首次使用时才加载 black
       await pyodideWrapper?.pyodide.runPythonAsync(`
-        import black
+        try:
+          import black
+        except ImportError:
+          import micropip
+          await micropip.install('black')
+          import black
+        
         import json
         code = ${JSON.stringify(code)}
         try:

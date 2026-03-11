@@ -21,9 +21,11 @@ export class PyodideWrapper {
     })
   }
 
-  public async intialize() {
+  public async intialize(onProgress?: (message: string) => void) {
     // 加载 Pyodide，尝试多个 CDN 源
     let lastError: Error | null = null
+    
+    onProgress?.('正在加载 Python 运行环境...')
     
     for (const cdnUrl of PyodideWrapper.CDN_URLS) {
       try {
@@ -40,12 +42,25 @@ export class PyodideWrapper {
       throw new Error(`Failed to load Pyodide from all CDN sources. Last error: ${lastError?.message}`)
     }
 
+    onProgress?.('正在加载包管理器...')
     await this.pyodide.loadPackage(['micropip'])
-    await this.pyodide.runPythonAsync(`
-    import micropip
-    await micropip.install('jedi')
-    await micropip.install('black')
-    `)
+    
+    // jedi 和 black 延迟加载，不阻塞初始化
+    this.loadOptionalPackages()
+  }
+
+  private async loadOptionalPackages() {
+    try {
+      console.log('Loading optional packages in background...')
+      await this.pyodide.runPythonAsync(`
+        import micropip
+        await micropip.install('jedi')
+        await micropip.install('black')
+      `)
+      console.log('Optional packages loaded successfully')
+    } catch (error) {
+      console.warn('Failed to load optional packages:', error)
+    }
   }
 
   public async installPackages(pipPackages: string) {

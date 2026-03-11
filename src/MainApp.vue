@@ -75,26 +75,57 @@ export default {
   async mounted() {
     this.loading = true
 
-    const loadingInstance = ElLoading.service({
+    let loadingInstance = ElLoading.service({
       lock: true,
       fullscreen: true,
-      text: 'Loading...',
+      text: '正在初始化...',
       spinner: 'el-icon-loading',
       background: 'rgba(0, 0, 0, 0.7)',
     })
 
-    await Promise.all([this.initializePyodide(), this.waitKernelBoot()])
-    const cfg = await GetConfig()
-    if (cfg && cfg.theme && cfg.pipPackages !== undefined) {
-      this.config = { ...cfg }
+    const updateProgress = (message: string) => {
+      loadingInstance.close()
+      loadingInstance = ElLoading.service({
+        lock: true,
+        fullscreen: true,
+        text: message,
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)',
+      })
     }
-    const codeEditor = this.$refs.codeEditor as any
-    codeEditor.setEditorTheme(this.config.theme)
-    codeEditor.setPyodide(this.pyodideWrapper?.pyodide)
-    await this.pyodideWrapper?.installPackages(this.config.pipPackages)
 
-    loadingInstance.close()
-    this.loading = false
+    try {
+      // 并行加载 Pyodide 和等待内核启动
+      await Promise.all([
+        this.initializePyodide(updateProgress),
+        this.waitKernelBoot(updateProgress)
+      ])
+
+      updateProgress('正在加载配置...')
+      const cfg = await GetConfig()
+      if (cfg && cfg.theme && cfg.pipPackages !== undefined) {
+        this.config = { ...cfg }
+      }
+
+      updateProgress('正在初始化编辑器...')
+      const codeEditor = this.$refs.codeEditor as any
+      codeEditor.setEditorTheme(this.config.theme)
+      codeEditor.setPyodide(this.pyodideWrapper?.pyodide)
+
+      // 如果有自定义包，显示安装进度
+      if (this.config.pipPackages) {
+        updateProgress('正在安装自定义包...')
+        await this.pyodideWrapper?.installPackages(this.config.pipPackages)
+      }
+
+      loadingInstance.close()
+      this.loading = false
+    } catch (error) {
+      loadingInstance.close()
+      const { ElMessage } = await import('element-plus')
+      ElMessage.error('初始化失败：' + error)
+      this.loading = false
+    }
   },
 
   methods: {
@@ -111,11 +142,12 @@ export default {
       }, 100)
     },
 
-    async initializePyodide() {
-      await this.pyodideWrapper.intialize()
+    async initializePyodide(onProgress?: (message: string) => void) {
+      await this.pyodideWrapper.intialize(onProgress)
     },
 
-    async waitKernelBoot() {
+    async waitKernelBoot(onProgress?: (message: string) => void) {
+      onProgress?.('正在等待思源内核启动...')
       while (true) {
         try {
           await siyuanClient.currentTime()
@@ -125,6 +157,7 @@ export default {
           await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       }
+      onProgress?.('正在恢复编辑器状态...')
       await this.setupEditor()
     },
 

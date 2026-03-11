@@ -96,8 +96,15 @@ export default {
           const column = position.column - 1 //起始为 0
 
           try {
+            // 首次使用时才加载 jedi
             const pyCompletions = await this.pyodide.runPythonAsync(`
-          import jedi
+          try:
+            import jedi
+          except ImportError:
+            import micropip
+            await micropip.install('jedi')
+            import jedi
+          
           jedi.settings.fast_parser = True
           script = jedi.Script(code=${JSON.stringify(code)})
           completions = script.complete(${line}, ${column})
