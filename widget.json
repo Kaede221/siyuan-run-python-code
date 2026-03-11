@@ -2,15 +2,15 @@
   "name": "run-python-code",
   "author": "ay27",
   "url": "https://github.com/ay27/run_python_code",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "minAppVersion": "2.8.8",
   "displayName": {
     "default": "Run Python Code",
-    "zh_CN": "python代码运行挂件"
+    "zh_CN": "Python 代码运行挂件"
   },
   "description": {
     "default": "A widget to run python code",
-    "zh_CN": "这是一个运行python代码的挂件"
+    "zh_CN": "这是一个运行Python代码的挂件"
   },
   "readme": {
     "default": "README.md"
@@ -20,5 +20,8 @@
     "patreon": "",
     "github": ""
   },
-  "keywords": ["code", "代码"]
+  "keywords": [
+    "code",
+    "代码"
+  ]
 }
