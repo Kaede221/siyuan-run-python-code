@@ -1,12 +1,18 @@
 <template>
   <div class="main-div" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
-    <MonacoEditor ref="codeEditor" class="code-editor" @keydown.ctrl.enter="handleExecuteCode"
-      @format-code="handleFormatCode" @update:value="onEditorContentChange" />
+    <div class="editor-container" :style="{ height: editorHeight + 'px' }">
+      <MonacoEditor ref="codeEditor" class="code-editor" @keydown.ctrl.enter="handleExecuteCode"
+        @format-code="handleFormatCode" @update:value="onEditorContentChange" />
+    </div>
+
+    <div class="resizer" @mousedown="startResize" :class="{ 'resizing': isResizing }"></div>
 
     <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover"
       @format="handleFormatCode" @run="handleExecuteCode" @open-settings="configDialogVisible = true" />
 
-    <OutputSection ref="outputSection" :result="result" />
+    <div class="output-container">
+      <OutputSection ref="outputSection" :result="result" />
+    </div>
   </div>
 
   <SettingsDialog v-model="configDialogVisible" :config="config" @save="handleSaveConfig" />
@@ -53,6 +59,10 @@ export default {
         theme: 'vs-light',
         pipPackages: '',
       },
+      editorHeight: 400,
+      isResizing: false,
+      startY: 0,
+      startHeight: 0,
     }
   },
 
@@ -117,6 +127,7 @@ export default {
       this.finishedTime = savedData.finishedTime || ''
       this.costSeconds = savedData.costSeconds || 0
       this.result = savedData.result || ''
+      this.editorHeight = savedData.editorHeight || 400
 
       const outputSection = this.$refs.outputSection as any
       outputSection.setMatplotlibContent(savedData.matplotlibDiv || '')
@@ -149,6 +160,7 @@ export default {
         result: this.result,
         matplotlibDiv: outputSection.getMatplotlibDiv()?.innerHTML || '',
         canvasImages: this.canvasImages,
+        editorHeight: this.editorHeight,
       })
     },
 
@@ -182,6 +194,49 @@ export default {
         result: this.result,
         matplotlibDiv: matplotlibDiv?.innerHTML || '',
         canvasImages: this.canvasImages,
+        editorHeight: this.editorHeight,
+      })
+    },
+
+    startResize(e: MouseEvent) {
+      this.isResizing = true
+      this.startY = e.clientY
+      this.startHeight = this.editorHeight
+
+      document.addEventListener('mousemove', this.handleResize)
+      document.addEventListener('mouseup', this.stopResize)
+      e.preventDefault()
+    },
+
+    handleResize(e: MouseEvent) {
+      if (!this.isResizing) return
+
+      const deltaY = e.clientY - this.startY
+      const newHeight = this.startHeight + deltaY
+
+      const minHeight = 200
+      const maxHeight = window.innerHeight - 300
+
+      this.editorHeight = Math.max(minHeight, Math.min(newHeight, maxHeight))
+    },
+
+    async stopResize() {
+      if (!this.isResizing) return
+
+      this.isResizing = false
+      document.removeEventListener('mousemove', this.handleResize)
+      document.removeEventListener('mouseup', this.stopResize)
+
+      const codeEditor = this.$refs.codeEditor as any
+      const outputSection = this.$refs.outputSection as any
+      await this.saveData({
+        code: codeEditor.getEditorContent(),
+        finishedTime: this.finishedTime,
+        costSeconds: this.costSeconds,
+        result: this.result,
+        matplotlibDiv: outputSection.getMatplotlibDiv()?.innerHTML || '',
+        canvasImages: this.canvasImages,
+        editorHeight: this.editorHeight,
       })
     },
   },
@@ -199,9 +254,51 @@ export default {
   flex-direction: column;
 }
 
-.code-editor {
+.editor-container {
   width: 95vw;
-  height: 40vh;
   margin: auto;
+  position: relative;
+}
+
+.code-editor {
+  width: 100%;
+  height: 100%;
+}
+
+.resizer {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  cursor: ns-resize;
+  position: relative;
+  transition: background 0.2s;
+  margin: 4px 0;
+}
+
+.resizer:hover,
+.resizer.resizing {
+  background: #2196f3;
+}
+
+.resizer::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 4px;
+  background: #999;
+  border-radius: 2px;
+}
+
+.resizer:hover::before,
+.resizer.resizing::before {
+  background: #fff;
+}
+
+.output-container {
+  flex: 1;
+  overflow: auto;
 }
 </style>

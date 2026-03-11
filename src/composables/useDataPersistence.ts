@@ -8,6 +8,7 @@ export function useDataPersistence() {
     result: string
     matplotlibDiv: string
     canvasImages: Record<string, string>
+    editorHeight: number
   }) => {
     await SaveWidgetData(data)
   }
