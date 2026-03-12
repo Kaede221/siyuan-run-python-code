@@ -1,7 +1,7 @@
 {
-  "name": "run-python-code-better",
+  "name": "siyuan-run-python-code",
   "author": "Kaede221",
-  "url": "https://github.com/Kaede221/siyuan-run-python-code/blob/main/LICENSE",
+  "url": "https://github.com/Kaede221/siyuan-run-python-code",
   "version": "1.1.0",
   "minAppVersion": "2.8.8",
   "displayName": {
@@ -14,11 +14,6 @@
   },
   "readme": {
     "default": "README.md"
-  },
-  "funding": {
-    "openCollective": "",
-    "patreon": "",
-    "github": ""
   },
   "keywords": [
     "code",

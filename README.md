@@ -1,10 +1,8 @@
-# Run Python Code Better
+# Siyuan Run Python Code
 
 一个功能完善的思源笔记 Python 代码运行挂件，基于 Pyodide 实现浏览器端 Python 代码执行，无需后端服务器。
 
 > 本项目基于 [ay27/run_python_code](https://github.com/ay27/run_python_code) 改进和优化
-
-![preview](./preview.png)
 
 ## 核心特性
 
@@ -33,9 +31,9 @@
 
 在思源笔记中插入挂件，即可开始编写和运行 Python 代码：
 
-![](./docs/usage1.png)
+![](https://github.com/Kaede221/siyuan-run-python-code/blob/main/docs/usage1.png)
 
-![](./docs/usage2.png)
+![](https://github.com/Kaede221/siyuan-run-python-code/blob/main/docs/usage2.png)
 
 **快捷键**：
 - `Ctrl+Enter`：执行代码
@@ -45,8 +43,8 @@
 
 点击设置按钮可以配置主题和第三方库：
 
-![](./docs/usage3.png)
-![](./docs/usage4.png)
+![](https://github.com/Kaede221/siyuan-run-python-code/blob/main/docs/usage3.png)
+![](https://github.com/Kaede221/siyuan-run-python-code/blob/main/docs/usage4.png)
 
 **配置项**：
 - **编辑器主题**：支持明亮/暗黑主题切换
@@ -56,7 +54,7 @@
 
 完整支持 Matplotlib 图表，执行结果会自动渲染并保存：
 
-![](./docs/usage6.png)
+![](https://github.com/Kaede221/siyuan-run-python-code/blob/main/docs/usage6.png)
 
 ```python
 import matplotlib.pyplot as plt
