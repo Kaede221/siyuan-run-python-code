@@ -14,7 +14,7 @@ cd ..
 
 echo Deploying to SiYuan...
 
-set SIYUAN_PATH=E:\WorkSpace\Personal\Notes\data\widgets\run-python-code-better
+set SIYUAN_PATH=E:\WorkSpace\Personal\Notes\data\widgets\siyuan-run-python-code
 
 if exist "%SIYUAN_PATH%" (
     echo Cleaning old files...

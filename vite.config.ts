@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/widgets/run-python-code-better/',
+  base: '/widgets/siyuan-run-python-code/',
   plugins: [
     vue(),
     vueDevTools(),
