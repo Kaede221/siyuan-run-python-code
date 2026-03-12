@@ -2,7 +2,7 @@
   "name": "siyuan-run-python-code",
   "author": "Kaede221",
   "url": "https://github.com/Kaede221/siyuan-run-python-code",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "minAppVersion": "2.8.8",
   "displayName": {
     "default": "Run Python Code Better",
