@@ -21,7 +21,7 @@ export async function SaveWidgetData(data: any) {
   const rsp = await siyuanClient.setBlockAttrs({
     id: currentWidgetID!,
     attrs: {
-      data: JSON.stringify(data),
+      "custom-run-python-code-data": JSON.stringify(data),
     },
   });
 
@@ -41,7 +41,7 @@ export async function GetWidgetData() {
     return {};
   }
 
-  return JSON.parse(rsp.data?.data || "{}");
+  return JSON.parse(rsp.data?.["custom-run-python-code-data"] || "{}");
 }
 
 export async function SaveConfig(config: any) {
@@ -73,7 +73,7 @@ export async function ClearWidgetData() {
   const rsp = await siyuanClient.setBlockAttrs({
     id: currentWidgetID!,
     attrs: {
-      data: JSON.stringify({}),
+      "custom-run-python-code-data": JSON.stringify({}),
     },
   });
 

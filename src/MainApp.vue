@@ -1,5 +1,6 @@
 <template>
-  <div class="main-div" :class="{ 'dark-mode': isDarkMode }" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+  <div class="main-div" :class="{ 'dark-mode': isDarkMode }" @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave">
     <div class="editor-container" :style="{ height: editorHeight + 'px' }">
       <MonacoEditor ref="codeEditor" class="code-editor" @keydown.ctrl.enter="handleExecuteCode"
         @format-code="handleFormatCode" @update:value="onEditorContentChange" />
@@ -7,15 +8,17 @@
 
     <div class="resizer" @mousedown="startResize" :class="{ 'resizing': isResizing }"></div>
 
-    <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover" :is-dark-mode="isDarkMode"
-      @format="handleFormatCode" @run="handleExecuteCode" @open-settings="configDialogVisible = true" />
+    <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover"
+      :is-dark-mode="isDarkMode" @format="handleFormatCode" @run="handleExecuteCode"
+      @open-settings="configDialogVisible = true" />
 
     <div class="output-container">
       <OutputSection ref="outputSection" :result="result" :is-dark-mode="isDarkMode" />
     </div>
   </div>
 
-  <SettingsDialog v-model="configDialogVisible" :config="config" @save="handleSaveConfig" @clear-data="handleClearData" />
+  <SettingsDialog v-model="configDialogVisible" :config="config" @save="handleSaveConfig"
+    @clear-data="handleClearData" />
 </template>
 
 <script lang="ts">
@@ -193,10 +196,10 @@ export default {
       try {
         // 清除挂件数据
         await ClearWidgetData()
-        
+
         // 清除全局配置
         await ClearConfig()
-        
+
         // 重置本地状态
         this.config = {
           theme: 'vs-light',
@@ -207,17 +210,17 @@ export default {
         this.result = ''
         this.editorHeight = 400
         this.canvasImages = {}
-        
+
         // 清空编辑器和输出
         const codeEditor = this.$refs.codeEditor as any
         codeEditor.setEditorContent('')
         codeEditor.setEditorTheme(this.config.theme)
-        
+
         const outputSection = this.$refs.outputSection as any
         outputSection.clearMatplotlib()
-        
+
         this.configDialogVisible = false
-        
+
         // 显示成功消息
         const { ElMessage } = await import('element-plus')
         ElMessage.success('所有数据已清除')
