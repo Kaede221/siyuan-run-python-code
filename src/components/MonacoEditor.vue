@@ -83,10 +83,10 @@ export default {
       this.pyodide = pyodide
     },
 
-    initializeCompletion() {
-      // 代码补全功能已禁用（需要联网下载 Jedi 包）
-      console.log('Code completion disabled (requires network to download Jedi)')
-    },
+    // initializeCompletion() {
+    //   // 代码补全功能已禁用（需要联网下载 Jedi 包）
+    //   console.log('Code completion disabled (requires network to download Jedi)')
+    // },
   },
   mounted() {
     this.editor = monaco.editor.create(this.$refs.editorContainer, {

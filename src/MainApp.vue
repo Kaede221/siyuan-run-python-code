@@ -122,6 +122,13 @@ export default {
     }
   },
 
+  beforeUnmount() {
+    // 清理Pyodide引用计数
+    if (this.pyodideWrapper) {
+      this.pyodideWrapper.dispose()
+    }
+  },
+
   methods: {
     handleMouseEnter() {
       if (this.hoverTimeout) {
