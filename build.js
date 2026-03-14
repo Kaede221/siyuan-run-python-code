@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 
 // Configuration
 const DIST_DIR = path.join(__dirname, 'dist');
+const WIDGET_JSON = path.join(__dirname, 'widget.json');
 const FILES_TO_COPY = ['preview.png', 'widget.json', 'README.md'];
 
 // Platform-specific deployment paths
@@ -24,6 +25,41 @@ function log(message) {
 
 function error(message) {
     console.error(`\x1b[31m${message}\x1b[0m`);
+}
+
+function updateVersion(type) {
+    try {
+        const widgetData = fs.readJsonSync(WIDGET_JSON);
+        const oldVersion = widgetData.version;
+        const version = oldVersion.split('.');
+        let [major, minor, patch] = version.map(Number);
+
+        switch (type) {
+            case 'major':
+                major += 1;
+                minor = 0;
+                patch = 0;
+                break;
+            case 'minor':
+                minor += 1;
+                patch = 0;
+                break;
+            case 'patch':
+                patch += 1;
+                break;
+            default:
+                return null;
+        }
+
+        const newVersion = `${major}.${minor}.${patch}`;
+        widgetData.version = newVersion;
+        fs.writeJsonSync(WIDGET_JSON, widgetData, { spaces: 2 });
+        log(`✓ Version updated: ${oldVersion} → ${newVersion}`);
+        return newVersion;
+    } catch (err) {
+        error(`Failed to update version: ${err.message}`);
+        return null;
+    }
 }
 
 async function createZip() {
@@ -51,6 +87,17 @@ async function createZip() {
 
 async function build() {
     try {
+        // Step 0: Update version (default: patch)
+        const versionArg = process.argv.find(arg => 
+            arg === '--major' || arg === '--minor' || arg === '--patch' || arg === '--no-version'
+        );
+        
+        if (versionArg !== '--no-version') {
+            const versionType = versionArg ? versionArg.replace('--', '') : 'patch';
+            log(`Updating ${versionType} version...`);
+            updateVersion(versionType);
+        }
+
         // Step 1: Build project
         log('Building project...');
         execSync('pnpm run build', { stdio: 'inherit' });
