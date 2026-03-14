@@ -84,68 +84,8 @@ export default {
     },
 
     initializeCompletion() {
-      monaco.languages.registerCompletionItemProvider('python', {
-        triggerCharacters: ['.', ' '], // 触发补全的字符
-        provideCompletionItems: async (model, position) => {
-          if (!this.pyodide) {
-            return { suggestions: [] }
-          }
-
-          const code = model.getValue()
-          const line = position.lineNumber //起始为 1
-          const column = position.column - 1 //起始为 0
-
-          try {
-            // 首次使用时才加载 jedi
-            const pyCompletions = await this.pyodide.runPythonAsync(`
-          try:
-            import jedi
-          except ImportError:
-            import micropip
-            await micropip.install('jedi')
-            import jedi
-          
-          jedi.settings.fast_parser = True
-          script = jedi.Script(code=${JSON.stringify(code)})
-          completions = script.complete(${line}, ${column})
-          [{"name": c.name, "type": c.type, "doc": c.docstring() or ""} for c in completions if c.name[0]]
-      `)
-
-            // 将Python元组列表转换为JS对象数组
-            const completions = pyCompletions.toJs().map((c) => ({
-              name: c['name'],
-              type: c['type'],
-              doc: c['doc'],
-            }))
-
-            const ret = {
-              suggestions: completions.map((c) => ({
-                label: c.name,
-                kind: getCompletionItemKind(c.type),
-                documentation: c.doc,
-                insertText: c.name,
-              })),
-            }
-
-            return ret
-          } catch (error) {
-            console.error('Completion error:', error)
-            return { suggestions: [] }
-          }
-        },
-      })
-
-      // 映射Jedi类型到Monaco的CompletionItemKind
-      function getCompletionItemKind(jediType) {
-        const map = {
-          module: monaco.languages.CompletionItemKind.Module,
-          class: monaco.languages.CompletionItemKind.Class,
-          function: monaco.languages.CompletionItemKind.Function,
-          instance: monaco.languages.CompletionItemKind.Variable,
-          keyword: monaco.languages.CompletionItemKind.Keyword,
-        }
-        return map[jediType] || monaco.languages.CompletionItemKind.Property
-      }
+      // 代码补全功能已禁用（需要联网下载 Jedi 包）
+      console.log('Code completion disabled (requires network to download Jedi)')
     },
   },
   mounted() {
@@ -170,16 +110,6 @@ export default {
     })
     this.editor.onDidChangeModelContent(() => {
       this.$emit('update:value', this.editor.getValue())
-    })
-
-    // 添加键盘事件监听
-    this.editor.addAction({
-      id: 'format-code',
-      label: 'Format Code',
-      keybindings: [monaco.KeyMod.Alt | monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL],
-      run: () => {
-        this.$emit('format-code')
-      },
     })
 
     this.editor.onDidChangeCursorPosition((e) => {

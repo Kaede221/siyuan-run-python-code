@@ -54,7 +54,7 @@ export async function SaveConfig(config: any) {
   }
 }
 
-export async function GetConfig(): Promise<{ theme: string; pipPackages: string } | null> {
+export async function GetConfig(): Promise<{ theme: string } | null> {
   try {
     const rsp = await siyuanClient.getFile(
       {
@@ -62,7 +62,7 @@ export async function GetConfig(): Promise<{ theme: string; pipPackages: string 
       },
       "json",
     );
-    return rsp as { theme: string; pipPackages: string };
+    return rsp as { theme: string };
   } catch (error) {
     console.error(error);
     return null;
@@ -85,7 +85,6 @@ export async function ClearWidgetData() {
 export async function ClearConfig() {
   const defaultConfig = {
     theme: "vs-light",
-    pipPackages: "",
   };
   const rsp = await siyuanClient.putFile({
     path: CONFIG_FILE_PATH,

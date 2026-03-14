@@ -1,27 +1,24 @@
 # Siyuan Run Python Code
 
-一个功能完善的思源笔记 Python 代码运行挂件，基于 Pyodide 实现浏览器端 Python 代码执行，无需后端服务器。
+一个轻量级的思源笔记 Python 代码运行挂件，基于 Pyodide 实现浏览器端 Python 代码执行，无需后端服务器。
 
 > 本项目基于 [ay27/run_python_code](https://github.com/ay27/run_python_code) 改进和优化
 
 ## 核心特性
 
-- **代码编辑与执行**：基于 Monaco Editor 的专业代码编辑器，支持语法高亮和智能补全
-- **智能代码补全**：集成 Jedi 提供 Python 代码自动补全功能
-- **代码格式化**：使用 Black 自动格式化代码（快捷键：Ctrl+Shift+F）
+- **代码编辑与执行**：基于 Monaco Editor 的专业代码编辑器，支持语法高亮
 - **快速执行**：支持快捷键执行（Ctrl+Enter）
-- **数据可视化**：完整支持 Matplotlib 图表渲染和保存
-- **包管理**：支持通过 micropip 安装纯 Python 第三方库
-- **状态持久化**：自动保存代码、执行结果和图表输出
+- **状态持久化**：自动保存代码和执行结果
 - **主题切换**：支持明暗主题切换
 - **可调整布局**：编辑器高度可拖拽调整
+- **本地运行时**：Pyodide 核心文件本地化，完全离线运行
 
 ## 技术栈
 
 - **前端框架**：Vue 3 + TypeScript
 - **UI 组件**：Element Plus + Tailwind CSS
 - **代码编辑器**：Monaco Editor
-- **Python 运行时**：Pyodide 0.27.7
+- **Python 运行时**：Pyodide 0.29.3
 - **思源集成**：@siyuan-community/siyuan-sdk
 - **构建工具**：Vite
 
@@ -37,7 +34,6 @@
 
 **快捷键**：
 - `Ctrl+Enter`：执行代码
-- `Ctrl+Shift+F`：格式化代码
 
 ### 2. 全局配置
 
@@ -48,27 +44,6 @@
 
 **配置项**：
 - **编辑器主题**：支持明亮/暗黑主题切换
-- **第三方库**：每行一个包名，支持版本指定（如 `numpy==1.24.0`）
-
-### 3. 数据可视化
-
-完整支持 Matplotlib 图表，执行结果会自动渲染并保存：
-
-![](https://github.com/Kaede221/siyuan-run-python-code/blob/main/docs/usage6.png)
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-
-x = np.linspace(0, 10, 100)
-y = np.sin(x)
-
-plt.plot(x, y)
-plt.title('Sine Wave')
-plt.xlabel('x')
-plt.ylabel('sin(x)')
-plt.show()
-```
 
 ## 安装部署
 
@@ -116,16 +91,16 @@ src/
 
 ### 核心功能实现
 
-- **Pyodide 初始化**：支持多 CDN 源自动切换，提高加载成功率
+- **Pyodide 初始化**：从本地加载核心文件，完全离线运行
 - **代码执行**：异步执行 Python 代码，捕获标准输出和错误
-- **图表渲染**：自动检测 Matplotlib 画布并转换为图片保存
 - **数据持久化**：通过思源 API 保存代码、配置和执行结果
 
 ## 注意事项
 
-- Pyodide 仅支持纯 Python 包，不支持包含 C 扩展的包（除非已预编译）
-- 首次加载需要下载 Pyodide 运行时（约 10-20MB），请耐心等待
-- 建议在稳定的网络环境下使用，避免 CDN 加载失败
+- Pyodide 仅支持纯 Python 包和标准库
+- 核心运行时已本地化（~8-10MB），无需联网
+- 不支持代码补全和格式化功能（需要额外的包）
+- 完全离线运行，适合在无网络环境下使用
 
 ## 许可证
 
@@ -137,11 +112,18 @@ src/
 
 ## 更新日志
 
+### v1.1.6
+- ✅ 移除 Matplotlib 支持，减小体积
+- ✅ Pyodide 核心文件本地化（~8-10MB）
+- ✅ 升级到 Pyodide 0.29.3
+- ✅ 移除所有联网功能，完全离线运行
+- ✅ 移除代码补全和格式化功能
+- ✅ 优化加载速度和性能
+
 ### v1.1.0
 - ✅ 完善设置面板功能
 - ✅ 支持代码格式化（Black）
 - ✅ 支持第三方库安装配置
-- ✅ 完整支持 Matplotlib 图表保存
 - ✅ 支持主题切换
 - ✅ 优化 Pyodide 加载策略（多 CDN 源）
 

@@ -3,13 +3,13 @@
     @mouseleave="handleMouseLeave">
     <div class="editor-container" :style="{ height: editorHeight + 'px' }">
       <MonacoEditor ref="codeEditor" class="code-editor" @keydown.ctrl.enter="handleExecuteCode"
-        @format-code="handleFormatCode" @update:value="onEditorContentChange" />
+        @update:value="onEditorContentChange" />
     </div>
 
     <div class="resizer" @mousedown="startResize" :class="{ 'resizing': isResizing }"></div>
 
     <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover"
-      :is-dark-mode="isDarkMode" @format="handleFormatCode" @run="handleExecuteCode"
+      :is-dark-mode="isDarkMode" @run="handleExecuteCode"
       @open-settings="configDialogVisible = true" />
 
     <div class="output-container">
@@ -37,7 +37,7 @@ export default {
   components: { MonacoEditor, ToolBar, OutputSection, SettingsDialog },
   setup() {
     const pyodideWrapper = new PyodideWrapper()
-    const { result, finishedTime, costSeconds, canvasImages, executeCode, formatCode } = usePythonExecution(pyodideWrapper)
+    const { result, finishedTime, costSeconds, executeCode } = usePythonExecution(pyodideWrapper)
     const { saveData, loadData } = useDataPersistence()
 
     return {
@@ -45,9 +45,7 @@ export default {
       result,
       finishedTime,
       costSeconds,
-      canvasImages,
       executeCode,
-      formatCode,
       saveData,
       loadData,
     }
@@ -60,7 +58,6 @@ export default {
       configDialogVisible: false,
       config: {
         theme: 'vs-light',
-        pipPackages: '',
       },
       editorHeight: 400,
       isResizing: false,
@@ -106,7 +103,7 @@ export default {
 
       updateProgress('正在加载配置...')
       const cfg = await GetConfig()
-      if (cfg && cfg.theme && cfg.pipPackages !== undefined) {
+      if (cfg && cfg.theme) {
         this.config = { ...cfg }
       }
 
@@ -114,12 +111,6 @@ export default {
       const codeEditor = this.$refs.codeEditor as any
       codeEditor.setEditorTheme(this.config.theme)
       codeEditor.setPyodide(this.pyodideWrapper?.pyodide)
-
-      // 如果有自定义包，显示安装进度
-      if (this.config.pipPackages) {
-        updateProgress('正在安装自定义包...')
-        await this.pyodideWrapper?.installPackages(this.config.pipPackages)
-      }
 
       loadingInstance.close()
       this.loading = false
@@ -171,20 +162,11 @@ export default {
       this.result = savedData.result || ''
       this.editorHeight = savedData.editorHeight || Math.floor(window.innerHeight * 0.5)
 
-      const outputSection = this.$refs.outputSection as any
-      outputSection.setMatplotlibContent(savedData.matplotlibDiv || '')
-      this.canvasImages = savedData.canvasImages || {}
-      outputSection.restoreCanvasImages(this.canvasImages)
-
       const codeEditor = this.$refs.codeEditor as any
       codeEditor.setEditorContent(savedData.code || '')
     },
 
     async handleSaveConfig(newConfig: any) {
-      if (!(await this.pyodideWrapper?.validatePipPackages(newConfig.pipPackages))) {
-        return
-      }
-
       this.config = { ...newConfig }
       const codeEditor = this.$refs.codeEditor as any
       codeEditor.setEditorTheme(this.config.theme)
@@ -203,21 +185,16 @@ export default {
         // 重置本地状态
         this.config = {
           theme: 'vs-light',
-          pipPackages: '',
         }
         this.finishedTime = ''
         this.costSeconds = 0
         this.result = ''
         this.editorHeight = 400
-        this.canvasImages = {}
 
         // 清空编辑器和输出
         const codeEditor = this.$refs.codeEditor as any
         codeEditor.setEditorContent('')
         codeEditor.setEditorTheme(this.config.theme)
-
-        const outputSection = this.$refs.outputSection as any
-        outputSection.clearMatplotlib()
 
         this.configDialogVisible = false
 
@@ -232,48 +209,26 @@ export default {
 
     async onEditorContentChange() {
       const codeEditor = this.$refs.codeEditor as any
-      const outputSection = this.$refs.outputSection as any
       await this.saveData({
         code: codeEditor.getEditorContent(),
         finishedTime: this.finishedTime,
         costSeconds: this.costSeconds,
         result: this.result,
-        matplotlibDiv: outputSection.getMatplotlibDiv()?.innerHTML || '',
-        canvasImages: this.canvasImages,
         editorHeight: this.editorHeight,
       })
     },
 
-    async handleFormatCode() {
-      const codeEditor = this.$refs.codeEditor as any
-      const value = codeEditor.getEditorContent()
-      const cursorPosition = codeEditor.getPosition()
-
-      const formattedCode = await this.formatCode(value)
-      if (formattedCode) {
-        codeEditor.setEditorContent(formattedCode)
-        codeEditor.setPosition(cursorPosition)
-      }
-    },
-
     async handleExecuteCode() {
       const codeEditor = this.$refs.codeEditor as any
-      const outputSection = this.$refs.outputSection as any
       const code = codeEditor.getEditorContent()
-      const matplotlibDiv = outputSection.getMatplotlibDiv()
 
-      outputSection.clearMatplotlib()
-      this.canvasImages = {}
-
-      await this.executeCode(code, matplotlibDiv)
+      await this.executeCode(code)
 
       await this.saveData({
         code: codeEditor.getEditorContent(),
         finishedTime: this.finishedTime,
         costSeconds: this.costSeconds,
         result: this.result,
-        matplotlibDiv: matplotlibDiv?.innerHTML || '',
-        canvasImages: this.canvasImages,
         editorHeight: this.editorHeight,
       })
     },
@@ -305,14 +260,11 @@ export default {
       document.removeEventListener('mouseup', this.stopResize)
 
       const codeEditor = this.$refs.codeEditor as any
-      const outputSection = this.$refs.outputSection as any
       await this.saveData({
         code: codeEditor.getEditorContent(),
         finishedTime: this.finishedTime,
         costSeconds: this.costSeconds,
         result: this.result,
-        matplotlibDiv: outputSection.getMatplotlibDiv()?.innerHTML || '',
-        canvasImages: this.canvasImages,
         editorHeight: this.editorHeight,
       })
     },

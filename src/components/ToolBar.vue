@@ -1,15 +1,5 @@
 <template>
   <div class="middle-toolbar flex" :class="isDarkMode ? 'bg-gray-700' : 'bg-gray-200'">
-    <el-tooltip content="Opt+Cmd+L to Format Code" :show-after="500">
-      <button
-        class="bg-green-500 hover:bg-green-400 text-gray-800 font-bold py-0.75 px-4 inline-flex items-center cursor-pointer"
-        @click="$emit('format')">
-        <el-icon color="white">
-          <Brush />
-        </el-icon>
-      </button>
-    </el-tooltip>
-
     <el-tooltip content="Ctrl+Enter to Run" :show-after="500">
       <button
         class="bg-blue-500 hover:bg-blue-400 text-gray-800 font-bold py-0.75 px-4 inline-flex items-center cursor-pointer"
@@ -39,18 +29,18 @@ Save and run finished at: {{ finishedTime }}. Cost: {{ costSeconds }}s</pre>
 </template>
 
 <script lang="ts">
-import { CaretRight, Setting, Brush } from '@element-plus/icons-vue'
+import { CaretRight, Setting } from '@element-plus/icons-vue'
 
 export default {
   name: 'ToolBar',
-  components: { Setting, CaretRight, Brush },
+  components: { Setting, CaretRight },
   props: {
     finishedTime: String,
     costSeconds: Number,
     showSettings: Boolean,
     isDarkMode: Boolean,
   },
-  emits: ['format', 'run', 'open-settings'],
+  emits: ['run', 'open-settings'],
 }
 </script>
 

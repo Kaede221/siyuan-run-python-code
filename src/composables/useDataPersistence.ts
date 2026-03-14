@@ -6,8 +6,6 @@ export function useDataPersistence() {
     finishedTime: string
     costSeconds: number
     result: string
-    matplotlibDiv: string
-    canvasImages: Record<string, string>
     editorHeight: number
   }) => {
     await SaveWidgetData(data)
