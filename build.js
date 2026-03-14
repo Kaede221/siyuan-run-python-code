@@ -19,8 +19,15 @@ const DEPLOY_PATHS = {
     // linux: '/path/to/linux/siyuan/widgets/run-python-code',
 };
 
-function log(message) {
-    console.log(`\x1b[36m${message}\x1b[0m`);
+function log(message, type = 'info') {
+    const colors = {
+        info: '\x1b[36m',    // 青色 - 普通信息
+        success: '\x1b[32m', // 绿色 - 成功信息
+        warning: '\x1b[33m', // 黄色 - 警告信息
+        step: '\x1b[35m',    // 紫色 - 步骤标题
+    };
+    const color = colors[type] || colors.info;
+    console.log(`${color}${message}\x1b[0m`);
 }
 
 function error(message) {
@@ -54,7 +61,7 @@ function updateVersion(type) {
         const newVersion = `${major}.${minor}.${patch}`;
         widgetData.version = newVersion;
         fs.writeJsonSync(WIDGET_JSON, widgetData, { spaces: 2 });
-        log(`✓ Version updated: ${oldVersion} → ${newVersion}`);
+        log(`✓ Version updated: ${oldVersion} → ${newVersion}`, 'success');
         return newVersion;
     } catch (err) {
         error(`Failed to update version: ${err.message}`);
@@ -68,7 +75,7 @@ async function createZip() {
         const archive = archiver('zip', { zlib: { level: 9 } });
 
         output.on('close', () => {
-            log(`✓ Created package.zip (${archive.pointer()} bytes)`);
+            log(`✓ Created package.zip (${archive.pointer()} bytes)`, 'success');
             resolve();
         });
 
@@ -94,51 +101,52 @@ async function build() {
         
         if (versionArg !== '--no-version') {
             const versionType = versionArg ? versionArg.replace('--', '') : 'patch';
-            log(`Updating ${versionType} version...`);
+            log(`Updating ${versionType} version...`, 'step');
             updateVersion(versionType);
         }
 
         // Step 1: Build project
-        log('Building project...');
-        execSync('pnpm run build', { stdio: 'inherit' });
+        log('Building project...', 'step');
+        execSync('pnpm run build', { stdio: 'ignore' });
+        log('✓ Build completed', 'success');
 
         // Step 2: Copy additional files
-        log('Copying files...');
+        log('Copying files...', 'step');
         for (const file of FILES_TO_COPY) {
             const src = path.join(__dirname, file);
             const dest = path.join(DIST_DIR, file);
             if (fs.existsSync(src)) {
                 fs.copyFileSync(src, dest);
-                log(`✓ Copied ${file}`);
+                log(`✓ Copied ${file}`, 'success');
             } else {
                 error(`✗ File not found: ${file}`);
             }
         }
 
         // Step 3: Create package.zip
-        log('Creating package.zip...');
+        log('Creating package.zip...', 'step');
         await createZip();
 
         // Step 4: Deploy to SiYuan (if path is configured)
         const deployPath = DEPLOY_PATHS[process.platform];
         if (deployPath) {
-            log('Deploying to SiYuan...');
+            log('Deploying to SiYuan...', 'step');
 
             // Clean old files
             if (fs.existsSync(deployPath)) {
-                log('Cleaning old files...');
+                log('Cleaning old files...', 'info');
                 fs.removeSync(deployPath);
             }
 
             // Copy new files
-            log('Copying new files...');
+            log('Copying new files...', 'info');
             fs.copySync(DIST_DIR, deployPath);
-            log(`✓ Deployed to ${deployPath}`);
+            log(`✓ Deployed to ${deployPath}`, 'success');
         } else {
-            log(`⚠ No deployment path configured for platform: ${process.platform}`);
+            log(`⚠ No deployment path configured for platform: ${process.platform}`, 'warning');
         }
 
-        log('✅ Build and deploy completed!');
+        log('✅ Build and deploy completed!', 'success');
     } catch (err) {
         error(`❌ Build failed: ${err.message}`);
         process.exit(1);
