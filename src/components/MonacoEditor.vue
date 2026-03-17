@@ -103,6 +103,7 @@ export default {
       readOnly: !this.editable,
       automaticLayout: true,
       minimap: { enabled: false },
+      scrollBeyondLastLine: false,
       wordWrap: 'on',
       trimAutoWhitespace: true,
       wordBasedSuggestions: 'currentDocument',
