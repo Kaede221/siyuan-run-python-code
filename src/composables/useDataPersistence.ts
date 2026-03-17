@@ -3,6 +3,8 @@ import { SaveWidgetData, GetWidgetData } from '@/utils/siyuan_client'
 export function useDataPersistence() {
   const saveData = async (data: {
     code: string
+    stdinText: string
+    stdinCollapsed: boolean
     finishedTime: string
     costSeconds: number
     result: string

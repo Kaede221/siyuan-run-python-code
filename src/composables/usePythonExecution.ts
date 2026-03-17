@@ -8,7 +8,7 @@ export function usePythonExecution(pyodideWrapper: PyodideWrapper | null) {
   const costSeconds = ref(0);
   const startExecuteTime = ref(0);
 
-  const executeCode = async (code: string) => {
+  const executeCode = async (code: string, stdinText?: string) => {
     startExecuteTime.value = new Date().getTime();
 
     if (!code) {
@@ -22,6 +22,20 @@ export function usePythonExecution(pyodideWrapper: PyodideWrapper | null) {
     try {
       const output: string[] = [];
       pyodideWrapper?.pyodide.setStdout({ batched: (text: string) => output.push(text) });
+
+      // 设置 stdin：将输入文本按行分割，每次 input() 调用读取一行
+      if (stdinText !== undefined) {
+        const lines = stdinText.split("\n");
+        let lineIndex = 0;
+        pyodideWrapper?.pyodide.setStdin({
+          stdin: () => {
+            if (lineIndex < lines.length) {
+              return lines[lineIndex++];
+            }
+            return undefined;
+          },
+        });
+      }
 
       await pyodideWrapper?.pyodide.runPythonAsync(code);
       result.value = output.join("\n") || "Execution successful (no output)";

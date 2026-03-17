@@ -8,9 +8,11 @@
 
     <div class="resizer" @mousedown="startResize" :class="{ 'resizing': isResizing }"></div>
 
+    <InputSection ref="inputSection" :is-dark-mode="isDarkMode" :theme="config.theme"
+      @update:value="onInputContentChange" @update:collapsed="onInputCollapsedChange" />
+
     <ToolBar :finished-time="finishedTime" :cost-seconds="costSeconds" :show-settings="isHover"
-      :is-dark-mode="isDarkMode" @run="handleExecuteCode"
-      @open-settings="configDialogVisible = true" />
+      :is-dark-mode="isDarkMode" @run="handleExecuteCode" @open-settings="configDialogVisible = true" />
 
     <div class="output-container">
       <OutputSection ref="outputSection" :result="result" :is-dark-mode="isDarkMode" />
@@ -24,6 +26,7 @@
 <script lang="ts">
 import MonacoEditor from '@/components/MonacoEditor.vue'
 import ToolBar from '@/components/ToolBar.vue'
+import InputSection from '@/components/InputSection.vue'
 import OutputSection from '@/components/OutputSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import { GetConfig, SaveConfig, siyuanClient, ClearWidgetData, ClearConfig } from '@/utils/siyuan_client'
@@ -34,7 +37,7 @@ import { useDataPersistence } from './composables/useDataPersistence'
 
 export default {
   name: 'MainApp',
-  components: { MonacoEditor, ToolBar, OutputSection, SettingsDialog },
+  components: { MonacoEditor, ToolBar, InputSection, OutputSection, SettingsDialog },
   setup() {
     const pyodideWrapper = new PyodideWrapper()
     const { result, finishedTime, costSeconds, executeCode } = usePythonExecution(pyodideWrapper)
@@ -60,6 +63,7 @@ export default {
         theme: 'vs-light',
       },
       editorHeight: 400,
+      isRestoring: false,
       isResizing: false,
       startY: 0,
       startHeight: 0,
@@ -156,6 +160,7 @@ export default {
           break
         } catch (e) {
           await new Promise((resolve) => setTimeout(resolve, 1000))
+          console.error(e)
         }
       }
       onProgress?.('正在恢复编辑器状态...')
@@ -164,13 +169,25 @@ export default {
 
     async setupEditor() {
       const savedData = await this.loadData()
+
+      this.isRestoring = true
       this.finishedTime = savedData.finishedTime || ''
       this.costSeconds = savedData.costSeconds || 0
       this.result = savedData.result || ''
       this.editorHeight = savedData.editorHeight || Math.floor(window.innerHeight * 0.5)
 
+      const inputSection = this.$refs.inputSection as any
+      if (inputSection) {
+        if (savedData.stdinText) inputSection.setContent(savedData.stdinText)
+        if (savedData.stdinCollapsed !== undefined) inputSection.setCollapsed(savedData.stdinCollapsed)
+      }
+
       const codeEditor = this.$refs.codeEditor as any
       codeEditor.setEditorContent(savedData.code || '')
+
+      this.$nextTick(() => {
+        this.isRestoring = false
+      })
     },
 
     async handleSaveConfig(newConfig: any) {
@@ -198,10 +215,13 @@ export default {
         this.result = ''
         this.editorHeight = 400
 
-        // 清空编辑器和输出
+        // 清空编辑器、输入和输出
         const codeEditor = this.$refs.codeEditor as any
         codeEditor.setEditorContent('')
         codeEditor.setEditorTheme(this.config.theme)
+
+        const inputSection = this.$refs.inputSection as any
+        inputSection?.setContent('')
 
         this.configDialogVisible = false
 
@@ -215,9 +235,43 @@ export default {
     },
 
     async onEditorContentChange() {
+      if (this.isRestoring) return
       const codeEditor = this.$refs.codeEditor as any
+      const inputSection = this.$refs.inputSection as any
       await this.saveData({
         code: codeEditor.getEditorContent(),
+        stdinText: inputSection?.getContent() || '',
+        stdinCollapsed: inputSection?.isCollapsed() ?? true,
+        finishedTime: this.finishedTime,
+        costSeconds: this.costSeconds,
+        result: this.result,
+        editorHeight: this.editorHeight,
+      })
+    },
+
+    async onInputCollapsedChange() {
+      if (this.isRestoring) return
+      const codeEditor = this.$refs.codeEditor as any
+      const inputSection = this.$refs.inputSection as any
+      await this.saveData({
+        code: codeEditor.getEditorContent(),
+        stdinText: inputSection?.getContent() || '',
+        stdinCollapsed: inputSection?.isCollapsed() ?? true,
+        finishedTime: this.finishedTime,
+        costSeconds: this.costSeconds,
+        result: this.result,
+        editorHeight: this.editorHeight,
+      })
+    },
+
+    async onInputContentChange() {
+      if (this.isRestoring) return
+      const codeEditor = this.$refs.codeEditor as any
+      const inputSection = this.$refs.inputSection as any
+      await this.saveData({
+        code: codeEditor.getEditorContent(),
+        stdinText: inputSection?.getContent() || '',
+        stdinCollapsed: inputSection?.isCollapsed() ?? true,
         finishedTime: this.finishedTime,
         costSeconds: this.costSeconds,
         result: this.result,
@@ -227,12 +281,16 @@ export default {
 
     async handleExecuteCode() {
       const codeEditor = this.$refs.codeEditor as any
+      const inputSection = this.$refs.inputSection as any
       const code = codeEditor.getEditorContent()
+      const stdinText = inputSection?.getContent() || ''
 
-      await this.executeCode(code)
+      await this.executeCode(code, stdinText)
 
       await this.saveData({
         code: codeEditor.getEditorContent(),
+        stdinText,
+        stdinCollapsed: inputSection?.isCollapsed() ?? true,
         finishedTime: this.finishedTime,
         costSeconds: this.costSeconds,
         result: this.result,
@@ -267,8 +325,11 @@ export default {
       document.removeEventListener('mouseup', this.stopResize)
 
       const codeEditor = this.$refs.codeEditor as any
+      const inputSection = this.$refs.inputSection as any
       await this.saveData({
         code: codeEditor.getEditorContent(),
+        stdinText: inputSection?.getContent() || '',
+        stdinCollapsed: inputSection?.isCollapsed() ?? true,
         finishedTime: this.finishedTime,
         costSeconds: this.costSeconds,
         result: this.result,
