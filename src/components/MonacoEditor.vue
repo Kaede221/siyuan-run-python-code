@@ -4,6 +4,13 @@
 
 <script>
 import * as monaco from 'monaco-editor'
+import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
+
+self.MonacoEnvironment = {
+  getWorker() {
+    return new editorWorker()
+  },
+}
 
 export default {
   name: 'MonacoEditor',
@@ -115,8 +122,6 @@ export default {
     this.editor.onDidChangeCursorPosition((e) => {
       this.position = e.position
     })
-
-    this.initializeCompletion()
 
     window.addEventListener('resize', this.updateEditorSize)
   },

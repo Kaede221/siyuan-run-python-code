@@ -16,7 +16,7 @@ const FILES_TO_COPY = ['preview.png', 'widget.json', 'README.md'];
 const DEPLOY_PATHS = {
     win32: 'E:\\WorkSpace\\Personal\\Notes\\data\\widgets\\siyuan-run-python-code',
     //   darwin: '/Users/jinmianye/SiYuan/data/widgets/run-python-code',
-    // linux: '/path/to/linux/siyuan/widgets/run-python-code',
+    linux: '/mnt/e/Notes/data/widgets/siyuan-run-python-code/',
 };
 
 function log(message, type = 'info') {
@@ -95,10 +95,10 @@ async function createZip() {
 async function build() {
     try {
         // Step 0: Update version (default: patch)
-        const versionArg = process.argv.find(arg => 
+        const versionArg = process.argv.find(arg =>
             arg === '--major' || arg === '--minor' || arg === '--patch' || arg === '--no-version'
         );
-        
+
         if (versionArg !== '--no-version') {
             const versionType = versionArg ? versionArg.replace('--', '') : 'patch';
             log(`Updating ${versionType} version...`, 'step');

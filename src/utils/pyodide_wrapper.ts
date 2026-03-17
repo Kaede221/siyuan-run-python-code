@@ -7,6 +7,43 @@ let refCount = 0;
 const STORAGE_KEY = '__SIYUAN_PYODIDE_STATE__';
 const LOCK_KEY = '__SIYUAN_PYODIDE_LOCK__';
 
+// 检测Pyodide实例是否仍然可用（跨iframe实例可能因原iframe销毁而失效）
+async function isPyodideHealthy(instance: any): Promise<boolean> {
+  try {
+    const result = await Promise.race([
+      instance.runPythonAsync("1+1"),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]);
+    return result === 2;
+  } catch {
+    return false;
+  }
+}
+
+// 清除所有跨iframe共享的Pyodide引用
+function clearSharedPyodide(): void {
+  try {
+    if (window.parent && window.parent !== window) {
+      delete (window.parent as any).__SIYUAN_SHARED_PYODIDE__;
+    }
+    if (window.top && window.top !== window) {
+      delete (window.top as any).__SIYUAN_SHARED_PYODIDE__;
+    }
+  } catch (_) {
+    // 跨域限制，忽略
+    console.error(_)
+  }
+  delete (window as any).__SIYUAN_SHARED_PYODIDE__;
+
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LOCK_KEY);
+  } catch (e) {
+    // 忽略
+    console.error(e)
+  }
+}
+
 // 尝试获取跨iframe共享的Pyodide实例
 function getSharedPyodide(): any {
   try {
@@ -17,7 +54,7 @@ function getSharedPyodide(): any {
         return parentPyodide;
       }
     }
-    
+
     // 尝试从顶层窗口获取
     if (window.top && window.top !== window) {
       const topPyodide = (window.top as any).__SIYUAN_SHARED_PYODIDE__;
@@ -27,8 +64,9 @@ function getSharedPyodide(): any {
     }
   } catch (e) {
     // 跨域限制，忽略
+    console.error(e)
   }
-  
+
   return null;
 }
 
@@ -39,15 +77,16 @@ function setSharedPyodide(instance: any): void {
     if (window.parent && window.parent !== window) {
       (window.parent as any).__SIYUAN_SHARED_PYODIDE__ = instance;
     }
-    
+
     // 尝试设置到顶层窗口
     if (window.top && window.top !== window) {
       (window.top as any).__SIYUAN_SHARED_PYODIDE__ = instance;
     }
   } catch (e) {
     // 跨域限制，忽略
+    console.error(e)
   }
-  
+
   // 总是设置到当前窗口
   (window as any).__SIYUAN_SHARED_PYODIDE__ = instance;
 }
@@ -84,14 +123,14 @@ export class PyodideWrapper {
     const maxWaitTime = 30000; // 最多等待30秒
     const checkInterval = 200; // 每200ms检查一次
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < maxWaitTime) {
       const shared = getSharedPyodide();
       if (shared) {
         console.log("Found shared Pyodide instance from another iframe");
         return shared;
       }
-      
+
       // 检查localStorage中的状态
       try {
         const state = localStorage.getItem(STORAGE_KEY);
@@ -106,11 +145,12 @@ export class PyodideWrapper {
         }
       } catch (e) {
         // localStorage不可用，忽略
+        console.error(e)
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, checkInterval));
     }
-    
+
     return null;
   }
 
@@ -124,15 +164,22 @@ export class PyodideWrapper {
       return;
     }
 
-    // 2. 检查是否有跨iframe的共享实例
+    // 2. 检查是否有跨iframe的共享实例，并验证其是否仍然可用
     const crossIframeInstance = getSharedPyodide();
     if (crossIframeInstance) {
-      console.log("Reusing Pyodide instance from another iframe");
-      this.pyodide = crossIframeInstance;
-      sharedPyodideInstance = crossIframeInstance;
-      refCount++;
-      onProgress?.("复用其他挂件的 Python 环境...");
-      return;
+      onProgress?.("正在验证 Python 环境...");
+      const healthy = await isPyodideHealthy(crossIframeInstance);
+      if (healthy) {
+        console.log("Reusing Pyodide instance from another iframe");
+        this.pyodide = crossIframeInstance;
+        sharedPyodideInstance = crossIframeInstance;
+        refCount++;
+        onProgress?.("复用其他挂件的 Python 环境...");
+        return;
+      } else {
+        console.warn("Shared Pyodide instance is stale, clearing and reloading");
+        clearSharedPyodide();
+      }
     }
 
     // 3. 如果当前iframe正在加载，等待
@@ -150,7 +197,7 @@ export class PyodideWrapper {
     try {
       const lockValue = localStorage.getItem(LOCK_KEY);
       const now = Date.now();
-      
+
       if (!lockValue || now - parseInt(lockValue) > 10000) {
         // 没有锁，或者锁已过期（超过10秒）
         localStorage.setItem(LOCK_KEY, now.toString());
@@ -160,6 +207,7 @@ export class PyodideWrapper {
     } catch (e) {
       // localStorage不可用，直接加载
       shouldLoad = true;
+      console.error(e)
     }
 
     // 5. 如果没有获得锁，等待其他iframe加载完成
@@ -167,18 +215,23 @@ export class PyodideWrapper {
       onProgress?.("等待其他挂件加载 Python 环境...");
       const shared = await this.waitForSharedInstance(onProgress);
       if (shared) {
-        this.pyodide = shared;
-        sharedPyodideInstance = shared;
-        refCount++;
-        return;
+        const healthy = await isPyodideHealthy(shared);
+        if (healthy) {
+          this.pyodide = shared;
+          sharedPyodideInstance = shared;
+          refCount++;
+          return;
+        }
+        console.warn("Waited instance is stale, loading fresh");
+        clearSharedPyodide();
       }
-      // 等待超时，尝试自己加载
-      console.warn("Wait timeout, loading Pyodide anyway");
+      // 等待超时或实例失效，尝试自己加载
+      console.warn("Wait timeout or stale instance, loading Pyodide anyway");
     }
 
     // 6. 开始加载
     onProgress?.("正在加载 Python 运行环境（首次加载）...");
-    
+
     loadingPromise = (async () => {
       try {
         console.log(`Loading Pyodide from: ${PyodideWrapper.LOCAL_PYODIDE_URL}`);
@@ -188,7 +241,7 @@ export class PyodideWrapper {
 
         // 调用 loadPyodide 函数
         const loadPyodide = (window as any).loadPyodide;
-        
+
         const pyodideInstance = await loadPyodide({
           indexURL: PyodideWrapper.LOCAL_PYODIDE_URL,
           stdout: console.log,
@@ -206,21 +259,23 @@ export class PyodideWrapper {
           localStorage.removeItem(LOCK_KEY);
         } catch (e) {
           // 忽略
+          console.error(e)
         }
 
         console.log("Pyodide initialized successfully (shared instance)");
         return pyodideInstance;
       } catch (error) {
         loadingPromise = null;
-        
+
         // 清理锁
         try {
           localStorage.removeItem(LOCK_KEY);
           localStorage.removeItem(STORAGE_KEY);
         } catch (e) {
           // 忽略
+          console.error(e)
         }
-        
+
         console.error("Failed to load Pyodide:", error);
         throw error;
       }
